@@ -1,17 +1,18 @@
 import { useState } from 'react';
-import { QuizState, PersonalityType, UserData, OnboardingData } from '../types/quiz';
-import { confidenceProfiles } from '../data/careerQuizData';
+import { QuizState, PersonalityType, UserData, OnboardingData, Question } from '../types/quiz';
+import { scoreProfiles } from '../data/scoreQuizData';
+import { boundaryProfiles } from '../data/boundaryQuizData';
 import { quizService } from '../services/quiz.service';
 
-export const useQuiz = () => {
+export const useQuiz = (quizType: 'somatic' | 'boundary' = 'somatic') => {
   const [state, setState] = useState<QuizState>({
     step: 'welcome',
     currentQuestion: 0,
     answers: [],
     onboardingData: {
       firstName: '',
-      gender: 'female',
-      ageGroup: '26-35'
+      gender: null,
+      ageGroup: null
     }
   });
 
@@ -20,11 +21,12 @@ export const useQuiz = () => {
     lastName: '',
     email: '',
     phone: '',
-    gender: 'female',
-    ageGroup: '26-35'
+    gender: null,
+    ageGroup: null
   });
 
   const [result, setResult] = useState<PersonalityType | null>(null);
+  const [totalScore, setTotalScore] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,15 +36,25 @@ export const useQuiz = () => {
       ...prev,
       answers: newAnswers,
       currentQuestion: prev.currentQuestion + 1,
-      step: prev.currentQuestion === 3 ? 'form' : 'questions'
+      step: prev.currentQuestion === (quizType === 'boundary' ? 8 : 11) ? 'form' : 'questions'
     }));
   };
 
-  const calculateResult = () => {
-    const totalScore = state.answers.reduce((sum, score) => sum + score, 0);
-    const profile = confidenceProfiles.find(
+  const calculateResult = (questions: Question[]) => {
+    // Calculate score with consideration for reverse scoring
+    const totalScore = state.answers.reduce((sum, score, index) => {
+      if (index < questions.length && questions[index].reverseScoring) {
+        // For reverse scoring, we invert the score (1 becomes 5, 2 becomes 4, etc.)
+        return sum + (6 - score);
+      }
+      return sum + score;
+    }, 0);
+
+    const profiles = quizType === 'boundary' ? boundaryProfiles : scoreProfiles;
+    const profile = profiles.find(
       p => totalScore >= p.scoreRange.min && totalScore <= p.scoreRange.max
-    ) || confidenceProfiles[0];
+    ) || profiles[0];
+    
     return { score: totalScore, profile };
   };
 
@@ -62,7 +74,7 @@ export const useQuiz = () => {
     });
   };
 
-  const handleFormSubmit = async (formData: Partial<UserData>) => {
+  const handleFormSubmit = async (formData: Partial<UserData>, questions: Question[]) => {
     setIsSubmitting(true);
     setError(null);
 
@@ -73,8 +85,9 @@ export const useQuiz = () => {
         ...formData
       };
 
-      const { score, profile } = calculateResult();
+      const { score, profile } = calculateResult(questions);
       setResult(profile);
+      setTotalScore(score);
 
       await quizService.saveQuizResults(
         fullUserData,
@@ -96,6 +109,7 @@ export const useQuiz = () => {
     state,
     userData,
     result,
+    totalScore,
     isSubmitting,
     error,
     handleAnswer,

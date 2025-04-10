@@ -17,6 +17,7 @@ export interface PersonalityType {
     max: number;
   };
   image: string;
+  tips: string[];
 }
 
 export interface UserData {
@@ -24,5 +25,6 @@ export interface UserData {
   lastName: string;
   email: string;
   phone: string;
-  gender: 'male' | 'female';
+  gender: 'male' | 'female' | null;
+  ageGroup?: '18-25' | '26-35' | '36-45' | '46+' | null;
 }

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Share2, Facebook, Twitter, Linkedin, MessageCircle } from 'lucide-react';
+import { Share2, Facebook, Linkedin, MessageCircle, X } from 'lucide-react';
 import { PersonalityType, UserData } from '../../types/quiz';
 import { ConfidenceTips } from './ConfidenceTips';
 import { useState, useEffect } from 'react';
@@ -8,10 +8,11 @@ interface QuizResultProps {
   result: PersonalityType;
   userData: UserData;
   score: number;
+  coachImage?: string;
 }
 
-export const QuizResult: React.FC<QuizResultProps> = ({ result, userData, score }) => {
-  const maxScore = 20; // Based on 4 questions with max score of 5 each
+export const QuizResult: React.FC<QuizResultProps> = ({ result, userData, score, coachImage }) => {
+  const maxScore = 45; // Based on 9 questions with max score of 5 each
   const confidencePercentage = (score / maxScore) * 100;
   const [shareMessage, setShareMessage] = useState<string | null>(null);
   const [shareImageUrl, setShareImageUrl] = useState<string>('');
@@ -25,9 +26,17 @@ export const QuizResult: React.FC<QuizResultProps> = ({ result, userData, score 
     return '🤔'; // Thinking for very low scores
   };
   
+  // Format text to handle markdown-style formatting
+  const formatText = (text: string) => {
+    // Replace markdown-style formatting with HTML tags
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>');
+  };
+  
   // Create a default share image if there's no result image
   useEffect(() => {
-    // Use result image if available, otherwise use a default career image
+    // Use result image if available, otherwise use a default image
     const imageUrl = result.image || 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80';
     setShareImageUrl(imageUrl);
     
@@ -47,8 +56,8 @@ export const QuizResult: React.FC<QuizResultProps> = ({ result, userData, score 
     
     // Create and add meta tags
     const metaTags = [
-      { property: 'og:title', content: `${userData.firstName}'s Career Confidence Score: ${confidencePercentage.toFixed(0)}%` },
-      { property: 'og:description', content: `${userData.firstName} is a ${result.type}. Take the quiz to discover your career profile!` },
+      { property: 'og:title', content: `${userData.firstName}'s Boundary Quiz Score: ${confidencePercentage.toFixed(0)}%` },
+      { property: 'og:description', content: `${userData.firstName} is a ${result.type}. Take the quiz to discover your boundary style!` },
       { property: 'og:image', content: shareImageUrl },
       { property: 'og:url', content: window.location.href },
       { property: 'og:type', content: 'website' },
@@ -73,12 +82,12 @@ export const QuizResult: React.FC<QuizResultProps> = ({ result, userData, score 
   // Share URL with UTM parameters for tracking
   const getShareUrl = () => {
     const baseUrl = window.location.origin;
-    return `${baseUrl}?utm_source=share&utm_medium=social&utm_campaign=career_quiz&utm_content=${userData.firstName}`;
+    return `${baseUrl}?utm_source=share&utm_medium=social&utm_campaign=boundary_quiz&utm_content=${userData.firstName}`;
   };
   
   // Create share text with the user's name and result
   const getShareText = () => {
-    return `${getScoreEmoji()} I just discovered my Career Confidence Score is ${confidencePercentage.toFixed(0)}%! My profile: ${result.type}. Wonder what yours is? Take this quick career quiz! #CareerConfidence`;
+    return `${getScoreEmoji()} I just discovered I'm a "${result.type}" when it comes to boundaries! My score: ${confidencePercentage.toFixed(0)}%. What's your boundary style? Take this quick quiz! #BoundaryQuiz`;
   };
   
   // Generate a shareable card image URL (in a real app, this would be a server endpoint)
@@ -96,7 +105,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({ result, userData, score 
     showShareMessage();
   };
   
-  const shareToTwitter = () => {
+  const shareToX = () => {
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(getShareText())}&url=${encodeURIComponent(getShareUrl())}`;
     window.open(url, '_blank', 'width=600,height=400');
     showShareMessage();
@@ -119,7 +128,7 @@ export const QuizResult: React.FC<QuizResultProps> = ({ result, userData, score 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `${userData.firstName}'s Career Confidence Results`,
+          title: `${userData.firstName}'s Boundary Quiz Results`,
           text: getShareText(),
           url: getShareUrl(),
         });
@@ -142,35 +151,59 @@ export const QuizResult: React.FC<QuizResultProps> = ({ result, userData, score 
   
   return (
     <motion.div
-      className="result-card w-full"
+      className="result-card w-full max-w-3xl mx-auto"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-    >
-      <img
-        src={result.image}
-        alt={result.type}
-        className="result-image"
-      />
-      <h2 className="text-xl sm:text-2xl font-bold text-indigo-700 mb-3 sm:mb-4">
-        {userData.firstName}, your Career Confidence Score: {confidencePercentage.toFixed(0)}% {getScoreEmoji()}
-      </h2>
-      <h3 className="text-lg sm:text-xl font-semibold text-indigo-600 mb-2 sm:mb-3">
-        Profile: {result.type}
-      </h3>
-      <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">{result.description}</p>
+      transition={{ duration: 0.6 }}
+    >      
+      {/* Hero section with image and result type */}
+      <div className="relative rounded-xl overflow-hidden mb-8 shadow-lg">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10"></div>
+        <img
+          src={result.image}
+          alt={result.type}
+          className="w-full h-72 sm:h-96 object-cover"
+        />
+        <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-8 z-20 text-white">
+          <div className="flex items-center gap-4 mb-3">
+            <div className="bg-primary-600 text-white py-1.5 px-4 rounded-full text-sm font-semibold inline-flex items-center shadow-md">
+              {confidencePercentage.toFixed(0)}% {getScoreEmoji()}
+            </div>
+          </div>
+          <h2 className="text-2xl sm:text-4xl font-bold mb-2 font-heading drop-shadow-md tracking-tight">
+            {userData.firstName}, You're a <span className="text-primary-300">{result.type}</span>
+          </h2>
+          <div className="w-20 h-1 bg-primary-400 rounded opacity-80 mt-3"></div>
+        </div>
+      </div>
       
-      <ConfidenceTips tips={result.tips} />
+      {/* Result description */}
+      <div className="bg-white rounded-xl shadow-sm p-6 sm:p-8 mb-8 border border-secondary-100">
+        <div className="rich-text text-secondary-950 text-base sm:text-lg leading-relaxed font-body">
+          <div dangerouslySetInnerHTML={{ __html: formatText(result.description) }} />
+        </div>
+      </div>
       
-      <div className="space-y-3 sm:space-y-4 mt-6 sm:mt-8 p-4 sm:p-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg shadow-sm">
-        <h3 className="font-bold text-lg sm:text-xl text-indigo-700">Proud of your results? 😎</h3>
-        <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">
-          Let your friends discover if they have the same career confidence as you.
+      {/* Boundary tips */}
+      <div className="mb-8">
+        <h3 className="text-xl sm:text-2xl font-bold text-secondary-950 mb-5 font-heading">
+          Your Personalized Boundary Tips
+          <div className="w-16 h-1 bg-primary-500 rounded mt-2"></div>
+        </h3>
+        <ConfidenceTips tips={result.tips} />
+      </div>
+      
+      {/* Share section */}
+      <div className="mt-10 p-6 sm:p-8 bg-secondary-50 rounded-xl shadow-sm border border-secondary-100">
+        <h3 className="font-bold text-xl sm:text-2xl text-secondary-950 font-heading text-center mb-3">Share Your Results</h3>
+        <p className="text-secondary-900 text-center font-body mb-6">
+          Let your friends discover their boundary style too!
         </p>
         
         {shareMessage && (
           <motion.div 
-            className="bg-green-100 text-green-700 p-2 sm:p-3 rounded-lg text-center mb-3 sm:mb-4 text-sm sm:text-base"
+            className="bg-success-100 text-success-700 p-3 rounded-lg text-center mb-5 font-medium"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
@@ -179,44 +212,47 @@ export const QuizResult: React.FC<QuizResultProps> = ({ result, userData, score 
           </motion.div>
         )}
         
-        <div className="flex flex-wrap justify-center gap-2 sm:gap-4">
+        <div className="flex flex-wrap justify-center gap-5">
           <button 
             onClick={shareToFacebook}
             aria-label="Share to Facebook"
-            className="share-button text-blue-600 hover:bg-blue-100 transform hover:scale-110 transition-all"
+            className="share-button text-white bg-[#1877F2] hover:bg-[#0E6EDE] transform hover:scale-105 transition-all p-3.5 rounded-full shadow-sm"
           >
-            <Facebook size={20} className="sm:w-6 sm:h-6" />
+            <Facebook size={22} />
           </button>
           <button 
-            onClick={shareToTwitter}
-            aria-label="Share to Twitter"
-            className="share-button text-blue-400 hover:bg-blue-50 transform hover:scale-110 transition-all"
+            onClick={shareToX}
+            aria-label="Share to X"
+            className="share-button text-white bg-black hover:bg-gray-800 transform hover:scale-105 transition-all p-3.5 rounded-full shadow-sm"
           >
-            <Twitter size={20} className="sm:w-6 sm:h-6" />
+            <X size={22} />
           </button>
           <button 
             onClick={shareToLinkedin}
             aria-label="Share to LinkedIn"
-            className="share-button text-blue-700 hover:bg-blue-50 transform hover:scale-110 transition-all"
+            className="share-button text-white bg-[#0A66C2] hover:bg-[#084E96] transform hover:scale-105 transition-all p-3.5 rounded-full shadow-sm"
           >
-            <Linkedin size={20} className="sm:w-6 sm:h-6" />
+            <Linkedin size={22} />
           </button>
           <button 
             onClick={shareToWhatsapp}
-            aria-label="Share via message"
-            className="share-button text-green-500 hover:bg-green-50 transform hover:scale-110 transition-all"
+            aria-label="Share via WhatsApp"
+            className="share-button text-white bg-[#25D366] hover:bg-[#1DB354] transform hover:scale-105 transition-all p-3.5 rounded-full shadow-sm"
           >
-            <MessageCircle size={20} className="sm:w-6 sm:h-6" />
+            <MessageCircle size={22} />
           </button>
           <button 
             onClick={shareGeneral}
             aria-label="Share via other methods"
-            className="share-button text-gray-600 hover:bg-gray-100 transform hover:scale-110 transition-all"
+            className="share-button text-white bg-secondary-600 hover:bg-secondary-700 transform hover:scale-105 transition-all p-3.5 rounded-full shadow-sm"
           >
-            <Share2 size={20} className="sm:w-6 sm:h-6" />
+            <Share2 size={22} />
           </button>
         </div>
       </div>
     </motion.div>
   );
 };
+
+// Add default export for better compatibility
+export default QuizResult;
